@@ -265,6 +265,10 @@ body.padgame .hdr .ko span{display:none}
 @keyframes blink{50%{opacity:0}}
 #catch{position:fixed;inset:0;z-index:39;cursor:pointer}
 
+.hfit{display:none}
+@media (max-height:600px){.hfit{display:inline-flex}}
+@media (orientation:portrait) and (max-width:760px){.hfit{display:inline-flex}}
+#hPhase{display:none!important}
 .fitb{display:none;position:absolute;z-index:14;right:8px;min-height:44px;padding:4px 12px;gap:6px;align-items:center;background:rgba(15,11,8,.82);font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
 .fitb .fi{font-size:18px;line-height:1}
 @media (max-height:600px){.fitb{display:inline-flex;top:auto;bottom:auto;top:96px}}
@@ -417,7 +421,7 @@ body.padmode .modal{padding-left:calc(var(--dpW) + 20px);padding-right:calc(var(
       <div class="l1"><span>慶長5年 9月15日　関ヶ原</span><span class="wx" id="hWx"></span></div>
       <div class="ko hidden" id="hKo"></div>
       <div class="l2"><span class="tn">TURN<b id="hTurn">1</b></span><span class="pplate" id="hPhase">山内軍</span>
-        <button class="btn gold" id="bEnd">手番終了</button><button class="btn sndb" id="bSnd">♪ 音あり</button><button class="btn bm" id="bMenu2" style="display:none">≡</button></div>
+        <button class="btn gold" id="bEnd">手番終了</button><button class="btn sndb" id="bSnd">♪ 音あり</button><button class="btn bm" id="bMenu2" style="display:none">メニュー</button><button class="btn hfit" id="bFit2" aria-label="戦場の全体を見る"><span id="bFit2L">詳細図</span></button></div>
     </div>
     <div class="cards" id="cards"></div>
   </header>
@@ -436,8 +440,7 @@ body.padmode .modal{padding-left:calc(var(--dpW) + 20px);padding-right:calc(var(
   <div class="status panel hidden" id="status"></div>
   </div>
   <div class="talk panel" id="talk"><div class="tp" id="tP"></div><div style="flex:1;min-width:0"><div class="tw" id="tW"></div><div class="tx" id="tX"></div></div><span class="nx hidden" id="tN">▼</span></div>
-  <button class="btn fitb" id="bFit2" aria-label="戦場の全体を見る"><span class="fi">⛶</span><span id="bFit2L">全体図</span></button>
-  <div class="mini panel" id="mini"><canvas id="miniC" width="240" height="150" aria-label="全体の地図"></canvas><button class="btn" id="bFit">全体図</button></div>
+  <div class="mini panel" id="mini"><canvas id="miniC" width="240" height="150" aria-label="全体の地図"></canvas><button class="btn" id="bFit">詳細図</button></div>
   <footer class="foot">
     <button id="bMenu"><i>≡</i>メニュー</button>
     <button id="bArmy"><i>軍</i>軍勢情報</button>
@@ -564,7 +567,8 @@ ROSTER.forEach(r=>{if(!SPK[r[0]])SPK[r[0]]={n:r[1],ch:r[1][0],fac:r[4],img:face(
 const INFO={};ROSTER.forEach(r=>INFO[r[0]]={kana:r[3],bio:r[9].bio||'',s5:r[9].s5,tr:r[9].tr||[]});
 
 /* ---------- 状態 ---------- */
-let S=null,busy=false,cs=48,fit=false,dragMoved=false;
+let S=null,busy=false,cs=48,fit=false,zoomLv=0,dragMoved=false;
+const ZL=['詳細図','拡大図','全体図'];
 let ui={mode:'idle',sel:null,reach:null,origin:null,moved:false,targets:[]};
 let pref={speed:1,diff:'normal',flat:false};
 try{pref={...pref,...JSON.parse(localStorage.getItem(PREF)||'{}')}}catch(e){}
@@ -884,8 +888,10 @@ function freeArea(){
 function computeCs(){
   const w=$('#boardWrap').clientWidth,h=$('#boardWrap').clientHeight;
   if(fit){const fa=freeArea();return Math.max(12,Math.floor(Math.min((w-24)/W,(fa.h-16)/(H*(pref.flat?1:.82)))))}
-  if(matchMedia('(orientation:portrait) and (max-width:760px)').matches)return 60;
+  const portrait=matchMedia('(orientation:portrait) and (max-width:760px)').matches;
   const base=clamp(Math.floor(Math.min(window.innerWidth,1900)/24),40,68);
+  if(zoomLv===1){if(portrait)return 40;if(window.innerHeight<=600)return base;const fa=freeArea(),fc=Math.floor(Math.min((w-24)/W,(fa.h-16)/(H*(pref.flat?1:.82))));return Math.round((base+Math.min(fc,base))/2)}
+  if(portrait)return 60;
   return window.innerHeight<=600?Math.max(base,54):base;
 }
 function layout(keepCenter){
@@ -964,7 +970,7 @@ function drawMini(){
   if(!fit){const rx=(w.scrollLeft-(st.offsetWidth-W*cs)/2)/cs,ry=(w.scrollTop-(st.offsetHeight-H*cs)/2)/cs;
     g.strokeStyle='#f3f0e6';g.lineWidth=1.5;g.strokeRect(rx*cw,ry*ch,w.clientWidth/cs*cw,w.clientHeight/cs*ch*(pref.flat?1:1.15))}
 }
-$('#miniC').addEventListener('click',e=>{const r=e.target.getBoundingClientRect();const x=clamp(Math.floor((e.clientX-r.left)/r.width*W),0,W-1),y=clamp(Math.floor((e.clientY-r.top)/r.height*H),0,H-1);if(fit){fit=false;layout()}focusCell(x,y,true);drawMini()});
+$('#miniC').addEventListener('click',e=>{const r=e.target.getBoundingClientRect();const x=clamp(Math.floor((e.clientX-r.left)/r.width*W),0,W-1),y=clamp(Math.floor((e.clientY-r.top)/r.height*H),0,H-1);if(fit){cur={x,y};setZoom(0)}focusCell(x,y,true);drawMini()});
 let miniRaf=0;$('#boardWrap').addEventListener('scroll',()=>{if(!miniRaf)miniRaf=requestAnimationFrame(()=>{miniRaf=0;drawMini()})});
 
 /* ---------- 上部 ---------- */
@@ -1012,7 +1018,7 @@ function fitDock(){
   const sH=lastStatusH||(window.innerHeight<=600||portrait?84:250);
   cmd.classList.remove('row');
   if(!portrait&&cmd.offsetHeight+sH+10>dock.clientHeight)cmd.classList.add('row');
-  if(portrait)document.documentElement.style.setProperty('--talkB',(cmd.offsetHeight+sH+18)+'px');
+  if(portrait){const gr=$('#game').getBoundingClientRect(),cr=cmd.getBoundingClientRect();if(cr.height)document.documentElement.style.setProperty('--talkB',Math.round(gr.bottom-cr.top+6)+'px')}
 }
 function hideStatus(){$('#status').classList.add('hidden');document.body.classList.remove('st-open');fitDock()}
 function showStatus(u){
@@ -1134,7 +1140,7 @@ $('#bFit2').onclick=()=>{Snd.se('decide');toggleFit()};
 function startNew(){clearSave();newGame(pref.diff);enterGame();runTurnStart()}
 function enterGame(){Snd.bgm('field');
   $('#title').classList.add('hidden');$('#game').classList.remove('hidden');applyPad();
-  const b=$('#board');b.innerHTML='';delete b.dataset.built;fit=false;$('#bFit').textContent='全体図';
+  const b=$('#board');b.innerHTML='';delete b.dataset.built;fit=false;zoomLv=0;$('#bFit').textContent=ZL[0];$('#bFit2L').textContent=ZL[0];
   ui={mode:'idle',sel:null,reach:null,origin:null,moved:false,targets:[]};
   layout();renderHUD();hideStatus();renderCmd();idleTalk();
 }
@@ -1291,7 +1297,7 @@ function selectUnit(u){
 function deselect(){hideStatus();ui={mode:'idle',sel:null,reach:null,origin:null,moved:false,targets:[]};clearHL();$('#fc').classList.add('hidden');renderUnits();renderCmd()}
 
 function tap(x,y){
-  if(fit&&!busy&&!talking&&S&&!S.over){toggleFit();focusCell(x,y,true);return}
+  if(fit&&!busy&&!talking&&S&&!S.over){cur={x,y};setZoom(0);focusCell(x,y,true);return}
   if(busy||!S||S.over||S.phase!=='player'||talking)return;
   cur={x,y};document.querySelectorAll('.cell.cur').forEach(c=>c.classList.remove('cur'));const ce=cellEl(x,y);if(ce)ce.classList.add('cur');
   const o=unitAt(x,y);
@@ -1525,7 +1531,8 @@ function confirmEnd(){
   b.querySelector('#mClose').onclick=closeModal;
   b.querySelector('#mYes').onclick=()=>{closeModal();deselect();endPlayerPhase()};
 }
-function toggleFit(){fit=!fit;$('#bFit').textContent=fit?'戻す':'全体図';$('#bFit2L').textContent=fit?'戻す':'全体図';layout(!fit);if(!fit)focusCell(cur.x,cur.y,true)}
+function setZoom(lv,keep){zoomLv=lv;fit=lv===2;const t=ZL[lv];$('#bFit').textContent=t;$('#bFit2L').textContent=t;layout(!fit&&keep!==false);if(!fit)focusCell(cur.x,cur.y,true)}
+function toggleFit(){setZoom((zoomLv+1)%3)}
 /* モーダル・タイトルの項目選び */
 function focusList(list,idx){document.querySelectorAll('.kf').forEach(b=>b.classList.remove('kf'));const b=list[idx];if(!b)return;b.classList.add('kf');try{b.focus({preventScroll:true})}catch(e){}const box=b.closest('.mbox');if(box){const r=b.getBoundingClientRect(),br=box.getBoundingClientRect();if(r.top<br.top+8)box.scrollTop-=br.top+8-r.top;else if(r.bottom>br.bottom-8)box.scrollTop+=r.bottom-(br.bottom-8)}}
 function modalNav(k){
@@ -1594,7 +1601,7 @@ function updatePadLabels(){
     ending:{a:'タイトル',b:'タイトル',l:'',r:'',x:'',start:'',info:'',menu:''},
     talk:{a:'次へ',b:'次へ',l:'',r:'',x:'',start:'',info:'',menu:''},
     forecast:{a:'攻撃',b:'戻る',l:'',r:'',x:'',start:'',info:'',menu:''},
-    field:{a:'決定',b:ui.mode==='idle'?'閉じる':'戻る',l:myTurn?'前の武将':'',r:myTurn?'次の武将':'',x:fit?'戻す':'全体図',start:myTurn?'手番終了':'',info:'情報',menu:'メニュー'}
+    field:{a:'決定',b:ui.mode==='idle'?'閉じる':'戻る',l:myTurn?'前の武将':'',r:myTurn?'次の武将':'',x:ZL[zoomLv],start:myTurn?'手番終了':'',info:'情報',menu:'メニュー'}
   }[c]||{};
   document.querySelectorAll('.pad [data-k]').forEach(b=>{
     const k=b.dataset.k;if(['up','down','left','right'].includes(k))return;
