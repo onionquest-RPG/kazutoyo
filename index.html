@@ -161,7 +161,8 @@ body.padgame .hdr .ko span{display:none}
 .unit .hp{width:72%;height:3px;background:rgba(0,0,0,.7);margin-top:1px}
 .unit .hp i{display:block;height:100%;background:linear-gradient(90deg,#7de38a,#c8f5a0)}
 .unit .army{width:100%;height:calc(var(--cs)*.7);display:block;margin-top:-1px}
-.unit.acted .bb{filter:grayscale(.9) brightness(.62)}
+.unit.acted .bb>:not(.float):not(.hp){filter:grayscale(.9) brightness(.62)}
+.unit.acted .hp{opacity:.85}
 .unit.shiver .bb{animation:shiver .12s linear infinite}
 @keyframes shiver{25%{margin-left:-2px}75%{margin-left:2px}}
 .unit.flip .bb{animation:flipin .9s ease both;animation-delay:var(--d,0s)}
@@ -174,7 +175,7 @@ body.padgame .hdr .ko span{display:none}
 .unit.hit .army{animation:shake .25s}
 @keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .float{position:absolute;left:50%;top:-6px;transform:translateX(-50%);pointer-events:none;font-weight:800;color:#fff;font-size:calc(var(--cs)*.42);text-shadow:0 0 3px #000,0 0 4px #000;animation:fl .75s forwards;white-space:nowrap}
-.float.miss{color:#d8e6ff}.float.heal{color:#9dffb0}
+.float.miss{color:#d8e6ff}.float.heal{color:#7dff9a;font-size:calc(var(--cs)*.48);text-shadow:0 0 3px #063d14,0 0 6px #063d14,0 0 2px #000;z-index:3}
 @keyframes fl{to{transform:translate(-50%,-120%);opacity:0}}
 #fog{position:absolute;inset:0;pointer-events:none;background:
   radial-gradient(ellipse at 50% 45%,transparent 45%,rgba(20,18,14,.55) 100%);transition:opacity 1s}
