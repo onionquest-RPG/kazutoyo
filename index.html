@@ -299,7 +299,9 @@ body.padgame .fitb{display:none!important}
 .strip .b{height:8px;background:#000;margin-top:3px;border:1px solid rgba(201,162,78,.4)}.strip .b i{display:block;height:100%;background:linear-gradient(90deg,#7de38a,#c8f5a0);transition:width .25s}
 .strip .msg{grid-column:1/-1;text-align:center;font-weight:800;min-height:1.5em;color:var(--gold-hi)}
 .banner{position:fixed;inset:0;z-index:35;display:grid;place-items:center;pointer-events:none}
-.banner span{padding:12px 60px;font-size:clamp(26px,4vw,44px);font-weight:800;letter-spacing:.2em;color:#fff5da;background:linear-gradient(90deg,transparent,var(--bc) 15%,var(--bc) 85%,transparent);text-shadow:0 2px 6px #000;animation:bn 1.1s ease forwards}
+.banner span{display:inline-block;text-align:center;max-width:96vw;padding:12px clamp(24px,8vw,60px);font-size:clamp(24px,6.4vw,44px);font-weight:800;letter-spacing:.14em;color:#fff5da;background:linear-gradient(90deg,transparent,var(--bc) 12%,var(--bc) 88%,transparent);text-shadow:0 2px 6px #000;animation:bn 1.1s ease forwards;line-height:1.35}
+.banner span b{display:block;white-space:nowrap;font-weight:800}
+.banner span .bl0{font-size:.72em;letter-spacing:.2em;color:#f3dc9a}
 @keyframes bn{0%{opacity:0;transform:scaleX(.6)}20%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0}}
 
 .modal{position:fixed;inset:0;z-index:50;}
@@ -390,7 +392,7 @@ body.padmode .modal{padding-left:calc(var(--dpW) + 20px);padding-right:calc(var(
   .mbox h2{font-size:26px}.mbox h3{font-size:18px}.roster{font-size:16.5px}.roster .ct{font-size:15.5px}
   .btn{font-size:16.5px;min-height:46px}.opt .btn small{font-size:14px}.chip{font-size:14px}
   .fcard b{font-size:16.5px}.fcard span{font-size:12px}
-  .banner span{font-size:34px}
+  .banner span{font-size:30px}
   .bm{display:inline-flex!important}
 }
 
@@ -958,7 +960,7 @@ function renderUnits(){
 function clearHL(){document.querySelectorAll('.unit[data-aff]').forEach(e=>delete e.dataset.aff);$('#board').querySelectorAll('.cell').forEach(c=>c.classList.remove('hl-move','hl-atk','hl-heal','hl-tgt','hl-danger'))}
 function hl(cells,cls){cells.forEach(([x,y])=>cellEl(x,y).classList.add(cls))}
 function floatText(u,t,cls){const el=document.getElementById('u-'+u.id);if(!el)return;const d=document.createElement('div');d.className='float '+(cls||'');d.textContent=t;el.querySelector('.bb').appendChild(d);setTimeout(()=>d.remove(),800)}
-function banner(t,fac){if(fac==='y')Snd.se('horagai');else if(fac)Snd.se('enemy');return new Promise(r=>{if(!pref.speed){r();return}const d=document.createElement('div');d.className='banner';d.innerHTML=`<span style="--bc:${fac?FAC[fac].card:'rgba(20,15,10,.9)'}">${t}</span>`;document.body.appendChild(d);setTimeout(()=>{d.remove();r()},1100)})}
+function banner(t,fac){if(fac==='y')Snd.se('horagai');else if(fac)Snd.se('enemy');return new Promise(r=>{if(!pref.speed){r();return}const d=document.createElement('div');d.className='banner';const L=Array.isArray(t)?t:[t];d.innerHTML=`<span style="--bc:${fac?FAC[fac].card:'rgba(20,15,10,.9)'}">${L.map((x,k)=>`<b class="bl${k}">${x}</b>`).join('')}</span>`;document.body.appendChild(d);setTimeout(()=>{d.remove();r()},1100)})}
 
 /* ---------- ミニマップ ---------- */
 function drawMini(){
@@ -1155,10 +1157,10 @@ async function runTurnStart(){
   S.phase='player';healVillages('y');
   save();renderUnits();renderHUD();
   const k=U('kazutoyo');focusCell(k.x,k.y);setCursor(k.x,k.y,true);
-  await banner(`TURN ${S.turn}　山内軍`,'y');Snd.bgm('field');
+  await banner([`TURN ${S.turn}`,'山内軍'],'y');Snd.bgm('field');
   busy=false;renderHUD();renderCmd();idleTalk();
 }
-async function resumeTurn(){busy=true;S.phase='player';renderUnits();renderHUD();const k=U('kazutoyo');focusCell(k.x,k.y,true);await banner(`TURN ${S.turn}　山内軍`,'y');busy=false;renderHUD();renderCmd();idleTalk()}
+async function resumeTurn(){busy=true;S.phase='player';renderUnits();renderHUD();const k=U('kazutoyo');focusCell(k.x,k.y,true);await banner([`TURN ${S.turn}`,'山内軍'],'y');busy=false;renderHUD();renderCmd();idleTalk()}
 
 async function turnEvents(){
   const f=S.flags;
@@ -1434,7 +1436,7 @@ async function endPlayerPhase(){
   if(busy||S.over)return;busy=true;$('#fc').classList.add('hidden');clearHL();renderCmd();
   for(const fac of ['e','w']){
     S.phase=fac;renderHUD();renderUnits();idleTalk();
-    await banner(`${FAC[fac].n}の手番`,fac);
+    await banner([`TURN ${S.turn}`,`${FAC[fac].n}の手番`],fac);
     healVillages(fac);
     const list=alive().filter(u=>u.fac===fac);list.sort((a,b)=>nearestDist(a)-nearestDist(b));
     for(const u of list){if(S.over)return;if(u.dead||u.fac!==fac)continue;await aiAct(u);if(S.over)return}
