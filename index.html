@@ -367,6 +367,34 @@ body.padmode .modal{padding-left:calc(var(--dpW) + 20px);padding-right:calc(var(
   .talk .tp{width:52px;height:52px;font-size:22px}.talk .tw{font-size:13px}.talk .tx{font-size:13px;line-height:1.55}
   .strip{top:64px}.bm{display:inline-flex!important}
 }
+/* 横向きスマホ（タッチ操作）：縦向きに倣って、コマンドは下段に大きく */
+@media (max-height:600px) and (orientation:landscape){
+  body:not(.padgame){--dockW:min(50vw,430px)}
+  body:not(.padgame) .hdr .btn{min-height:40px;font-size:14px;padding:3px 11px;white-space:nowrap}
+  body:not(.padgame) .hdr .l2{gap:8px}
+  body:not(.padgame) .dock{top:auto;bottom:6px;left:calc(6px + env(safe-area-inset-left,0px));width:var(--dockW);justify-content:flex-end;gap:6px}
+  body:not(.padgame) .cmd,body:not(.padgame) .cmd.row{width:100%;flex-direction:row;gap:4px}
+  body:not(.padgame) .cmd button,body:not(.padgame) .cmd.row button{flex:1;min-width:0;height:52px;flex-direction:column;justify-content:center;gap:3px;padding:0 2px;font-size:14px;letter-spacing:0;line-height:1}
+  body:not(.padgame) .cmd button svg{width:20px;height:20px}
+  body:not(.padgame) .status{padding:6px 48px 6px 6px}
+  body:not(.padgame) .status .sx{width:40px;height:40px;font-size:18px}
+  body:not(.padgame) .status .nm ruby{font-size:17px}
+  body:not(.padgame) .talk{left:calc(var(--dockW) + 14px + env(safe-area-inset-left,0px));right:calc(6px + env(safe-area-inset-right,0px));bottom:6px;max-width:none;min-height:52px}
+  body:not(.padgame) .talk .tx{font-size:14px}body:not(.padgame) .talk .tw{font-size:14px}
+  body:not(.padgame) .headline{top:66px}
+  body:not(.padgame) #bSnd{display:none}
+  body:not(.padgame) .top{gap:6px}
+  body:not(.padgame) .cards{gap:4px;flex:none}
+  body:not(.padgame) .card{width:auto;padding:3px 6px;gap:4px}
+  body:not(.padgame) .card .cn{font-size:13px;white-space:nowrap;letter-spacing:0}
+  body:not(.padgame) .card .cs{font-size:10px;white-space:nowrap}
+  body:not(.padgame) .card img{width:22px;height:22px}
+  body:not(.padgame) .hdr .l1{white-space:nowrap}
+}
+@media (max-height:600px) and (orientation:landscape) and (max-width:760px){
+  body:not(.padgame) .card .cs{display:none}
+  body:not(.padgame) .hdr .ko span{display:none}
+}
 /* 縦向きスマホ */
 @media (orientation:portrait) and (max-width:760px){
   :root{--miniW:0px}
@@ -584,6 +612,8 @@ let _stored={};try{_stored=JSON.parse(localStorage.getItem(PREF)||'{}')||{}}catc
 pref={...pref,..._stored};
 // 既定の視点を「真上」に変更（以前の設定が残っている端末も一度だけ真上にそろえる）
 if(!(_stored.pv>=2)){pref.flat=true;pref.pv=2;try{localStorage.setItem(PREF,JSON.stringify(pref))}catch(e){}}
+// 横向きもタッチ操作を標準に（以前の「自動」は一度だけタッチ操作にそろえる）
+if(!(_stored.pv>=3)){if(pref.pad!=='on')pref.pad='off';pref.pv=3;try{localStorage.setItem(PREF,JSON.stringify(pref))}catch(e){}}
 pref.snd={bgm:true,se:true,vol:.8,mute:false,...(pref.snd||{})};
 const savePref=()=>{try{localStorage.setItem(PREF,JSON.stringify(pref))}catch(e){}};
 /* ---------- 音（Web Audio で合成） ---------- */
@@ -960,7 +990,7 @@ function renderUnits(){
     el.querySelector('.hp i').style.width=(u.hp/u.mhp*100)+'%';
     el.classList.toggle('stag',u.x%2===1);
     el.classList.toggle('acted',u.fac==='y'&&u.acted&&S.phase==='player');
-    el.classList.toggle('idle',u.ai==='idle'&&u.fac!=='y');
+    el.classList.toggle('idle',!!u.recruit&&u.fac!=='y');
     el.classList.toggle('boss',!!u.boss);el.classList.toggle('lord',!!u.lord);
     el.classList.toggle('sel',ui.sel===u);
   }
@@ -1099,7 +1129,7 @@ function settingsModal(){
   const sp=[[1,'ふつう','動きをひとつずつ見られます'],[0.45,'はやい','敵の手番がさくさく進みます'],[0,'一瞬','演出を省いてすぐ結果を出します']];
   const b=openModal(`<h2>設定</h2><h3>敵の動きの速さ</h3><div class="opt">${sp.map(([v,n,d])=>`<button class="btn ${pref.speed===v?'on':''}" data-s="${v}">${n}<small>${d}</small></button>`).join('')}</div>
   <h3>難易度</h3><div class="opt" style="grid-template-columns:repeat(3,1fr)">${[['easy','やさしい'],['normal','ふつう'],['hard','むずかしい']].map(([v,n])=>`<button class="btn ${pref.diff===v?'on':''}" data-diff="${v}">${n}</button>`).join('')}</div><p style="font-size:12px;margin-top:6px">「はじめから」を選ぶと、この難易度で始まります。遊んでいる途中に変えても、次の戦から反映されます。</p>
-  <h3>操作キー（スマホ横向き）</h3><div class="opt" style="grid-template-columns:repeat(3,1fr)">${[['auto','自動'],['on','表示'],['off','非表示']].map(([v,n])=>`<button class="btn ${(pref.pad||'auto')===v?'on':''}" data-pad="${v}">${n}</button>`).join('')}</div><p style="font-size:12px;margin-top:6px">自動：スマホやタブレットを横向きにしたときだけ表示します。パソコンでは矢印キー・Z（決定）・X（戻る）・Q（次の武将）でも操作できます。</p>
+  <h3>スマホ横向きの操作方法</h3><div class="opt" style="grid-template-columns:repeat(2,1fr)">${[['off','タッチ操作','画面を直接タッチ（標準）'],['on','操作キー','十字キーとボタンで操作']].map(([v,n,d])=>`<button class="btn ${(pref.pad==='on'?'on':'off')===v?'on':''}" data-pad="${v}">${n}<small>${d}</small></button>`).join('')}</div><p style="font-size:12px;margin-top:6px">パソコンでは、矢印キー・Z（決定）・X（戻る）・Q／W（武将の切り替え）でも操作できます。</p>
   <h3>音</h3><div class="opt" style="grid-template-columns:1fr 1fr"><button class="btn ${pref.snd.bgm?'on':''}" data-a="bgm">BGM　${pref.snd.bgm?'あり':'なし'}</button><button class="btn ${pref.snd.se?'on':''}" data-a="se">効果音　${pref.snd.se?'あり':'なし'}</button></div>
   <div class="opt" style="grid-template-columns:repeat(4,1fr);margin-top:8px">${[[0,'消音'],[.45,'小'],[.8,'中'],[1.1,'大']].map(([v,n])=>`<button class="btn ${(v===0?pref.snd.mute:!pref.snd.mute&&pref.snd.vol===v)?'on':''}" data-vol="${v}">${n}</button>`).join('')}</div>
   <h3>視点</h3><div class="opt"><button class="btn ${!pref.flat?'on':''}" data-v="0">立体<small>戦場を斜めから見下ろします</small></button><button class="btn ${pref.flat?'on':''}" data-v="1">真上<small>マス目が見やすい平面の地図</small></button></div>
@@ -1539,9 +1569,7 @@ async function victory(){
 /* ---------- 操作キー（スマホ横向き／キーボード） ---------- */
 let cur={x:18,y:10},cmdIdx=0,tgtIdx=0,titleIdx=-1,modalIdx=0;
 function padActive(){
-  const m=pref.pad||'auto',land=matchMedia('(orientation:landscape)').matches;
-  if(m==='off'||!land)return false;
-  return m==='on'||matchMedia('(pointer:coarse)').matches;
+  return pref.pad==='on'&&matchMedia('(orientation:landscape)').matches;
 }
 function applyPad(){
   const inGame=!$('#game').classList.contains('hidden');
